@@ -16,7 +16,7 @@
 % github.com/seismotologist & @seismotologist. Thank you (\_/)
 % -------------------------------------------------------------------------
 
-clear all
+clear all 
 
 % DESCRIPTION: A fraction of people in simulation ('agents') move around,
 % while others practice Social Distancing (SD) and stay home. At home,
