@@ -16,7 +16,7 @@
 # github.com/FMassin & @f_massin. Thank you (\_/)
 # -------------------------------------------------------------------------
 
-import numpy,matplotlib.pyplot
+import numpy,matplotlib.pyplot,os,imageio
 
 # DESCRIPTION: A fraction of people in simulation ('agents') move around,
 # while others practice Social Distancing (SD) and stay home. At home,
@@ -132,15 +132,21 @@ pns, = s1.plot(tt,nsick,      '-',lineWidth=2,color=csick,label='Sick')
 pni, = s1.plot(tt,nimmune,    '-',lineWidth=2,color=cimmune,label='Immune')
 lg = s1.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
+matplotlib.pyplot.tight_layout()
 matplotlib.pyplot.show(block=False)
 matplotlib.pyplot.pause(dtpause)
+
+
+os.makedirs('./gif_maker_png/') if not os.path.exists('./gif_maker_png/') else 'no'
+file_path = './gif_maker_png/frame_0.png'
+hf.savefig(file_path)#,dpi=dpi)
+images = [imageio.imread(file_path)]
 
 # Loop over all time steps
 for it in range(nt):
 
     # Loop over all agents
     for ia in range(nagents):
-
 
         # Movement
         # ========
@@ -203,7 +209,7 @@ for it in range(nt):
 
             # If you hit a wall, try a random new direction, until you no
             # longer hit a wall
-            hitWall = xnew>1 or xnew<0 or ynew>1 or ynew<0
+            hitWall = (xnew>=1) | (xnew<=0) | (ynew>=1) | (ynew<=0)
             ntries  = 0
             stillTrying = True
             while hitWall and stillTrying:
@@ -214,7 +220,7 @@ for it in range(nt):
                 dy[ia]    = dr*numpy.cos(alpha[ia])
                 xnew      = x[ia] + dx[ia]
                 ynew      = y[ia] + dy[ia]
-                hitWall = (xnew>=1) or (xnew<=0) or (ynew>=1) or (ynew<=0)
+                hitWall = (xnew>=1) | (xnew<=0) | (ynew>=1) | (ynew<=0)
 
                 ntries = ntries+1;
                 stillTrying = False if ntries>100 else True
@@ -243,14 +249,10 @@ for it in range(nt):
             r          = numpy.sqrt(xdist**2+ydist**2)   # Distance to other agent
             meetAgents = r<=rcont
             isHome     = (x==xbak) * (y==ybak)           # People at home don't get infected
-            isSick[meetAgents * (1-isImmune) *  (1-isHome)] = True
-            #print(sum(meetAgents),'close enough')
-            #print(sum(meetAgents * (1-isImmune)),'close enough & not immune')
-            #print(sum(meetAgents * (1-isImmune) *  (1-isHome)),'close enough & not immune & not at home')
-            #print(isSick[meetAgents * (1-isImmune) *  (1-isHome)])
-            
+            isSick[(meetAgents & ~isImmune &  ~isHome)] = True
+    
     # Count cases
-    isVulnerable = (1-isSick) * (1-isImmune)
+    isVulnerable = ~isSick & ~isImmune
     nvulnerable  += [sum(isVulnerable)]
     nsick        += [sum(isSick)]
     nimmune      += [sum(isImmune)]
@@ -266,8 +268,6 @@ for it in range(nt):
     pa4 = s2.plot([x[isAtMarket],xbak[isAtMarket]], [y[isAtMarket],ybak[isAtMarket]] ,color=[.8, .8, .8])
     pa5.set_data(xbak[isAtMarket], ybak[isAtMarket])
     
-    #pa1.remove()
-    #pa1, = s2.plot(x[isVulnerable],y[isVulnerable],'sk',markersize=mkSize,markerfacecolor=cvulnerable)
     pa1.set_data(x[isVulnerable],y[isVulnerable])
     pa2.set_data(x[isSick],y[isSick])
     pa3.set_data(x[isImmune],y[isImmune])
@@ -283,12 +283,10 @@ for it in range(nt):
     matplotlib.pyplot.pause(dtpause)
 
     if writeGif:
-        pass
-        # Capture the plot as an image & write to gif
-        #drawnow
-        #frame      = getframe(hf);
-        #im         = frame2im(frame);
-        #[imind,cm] = rgb2ind(im,256);
-        #if it==1; imwrite(imind,cm,gifName,'gif','DelayTime',dtgif, 'Loopcount',inf);
-        #else      imwrite(imind,cm,gifName,'gif','DelayTime',dtgif,'WriteMode','append');
-matplotlib.pyplot.show()
+        file_path = './gif_maker_png/frame_%d.png'%(it+1)
+        hf.savefig(file_path)#,dpi=dpi)
+        images.append(imageio.imread(file_path))
+if writeGif:
+    imageio.mimsave(gifName, images,'GIF',duration=dtgif)
+else:
+    matplotlib.pyplot.show()
